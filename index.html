@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Manual Cube Rotation</title>
+  <style>
+    body {
+         margin: 0;
+        overflow: hidden;
+        font-family: sans-serif;
+        background: #202020
+    }
+    #ui-panel{
+        position: absolute;
+        top: 20px;
+        left:20px;
+        padding:12px 16px;
+        background:rgba(255,255,255,0.95);
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index:10;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        color: #333;
+    }
+    #ui-panel label{
+        margin-right: 6px;
+    }
+
+#colorPicker {
+    border: none;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 0 2px #ccc;
+    transition: box-shadow 0.2s ease;
+}   
+#bgPicker {
+    border: none;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 0 2px #ccc;
+    transition: box-shadow 0.2s ease;
+}   
+#colorPicker:hover{
+    box-shadow: 0 0 0 1px #888
+}
+#bgPicker:hover{
+    box-shadow: 0 0 0 2px #888
+}
+input[type="color"] { 
+appearance: none;
+-webkit-appearance: none;
+border: none;
+padding: 0;
+width: 36px;
+height: 36px;
+border-radius: 50%;
+background: none;
+cursor: pointer;
+box-shadow: 0 0 0 2px #ccc inset;
+overflow: hidden;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper { 
+padding: 0;
+border-radius: 50%;
+}
+
+input[type="color"]::-webkit-color-swatch { 
+border: none;
+border-radius: 50%;
+}
+ canvas { display: block; }
+  </style>
+</head>
+<body>
+    <!-- Color pallete -->
+     <div id="ui-panel">
+        <!-- for the cube -->
+        <label for="colorPicker">🎨 Cube Color:</label>
+        <input type="color" id="colorPicker" value="#ff0000">
+        <!-- for the background -->
+        <label for="bgPicker">🎨  Background:</label>
+        <input type="color" id="bgPicker" value="#fefae0">
+     </div>
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.160.1/build/three.module.js';
+
+    let scene, camera, renderer, cube;
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    let autoRotation = true;
+
+    init();
+    animate();
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xfefae0)
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 2;
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const geometry = new THREE.BoxGeometry();
+      const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+      const edges = new THREE.EdgesGeometry(geometry);
+      const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+      const edgeLines = new THREE.LineSegments(edges, edgeMaterial); 
+     cube = new THREE.Mesh(geometry, material);
+      cube.add(edgeLines);
+      scene.add(cube);
+
+      const light = new THREE.PointLight(0xffffff, 1);
+      light.position.set(5, 5, 5);
+      scene.add(light);
+
+      scene.add(new THREE.AmbientLight(0xffffff));
+
+      window.addEventListener('resize', onWindowResize);
+    //color picker
+    document.getElementById('colorPicker').addEventListener('input', (e) => {
+    cube.material.color.set(e.target.value);
+    });
+    document.getElementById('bgPicker').addEventListener('input',(e)=>{
+        scene.background= new THREE.Color(e.target.value);
+    })
+      // Mouse Events
+      renderer.domElement.addEventListener('mousedown', onMouseDown, false);
+      renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+      renderer.domElement.addEventListener('mouseup', onMouseUp, false);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onMouseDown(event) {
+      isDragging = true;
+      autoRotation = false;
+      previousMousePosition = {
+        x: event.clientX,
+        y: event.clientY
+      };
+    }
+
+    function onMouseMove(event) {
+      if (!isDragging) return;
+
+      const deltaMove = {
+        x: event.clientX - previousMousePosition.x,
+        y: event.clientY - previousMousePosition.y
+      };
+
+      const deltaRotationQuaternion = new THREE.Quaternion()
+        .setFromEuler(new THREE.Euler(
+          toRadians(deltaMove.y * 0.5),
+          toRadians(deltaMove.x * 0.5),
+          0,
+          'XYZ'
+        ));
+
+      cube.quaternion.multiplyQuaternions(deltaRotationQuaternion, cube.quaternion);
+      previousMousePosition = {
+        x: event.clientX,
+        y: event.clientY
+      };
+    }
+
+    function onMouseUp() {
+      isDragging = false;
+      autoRotation = true;
+    }
+
+    function toRadians(angle) {
+      return angle * (Math.PI / 180);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+    if (autoRotation) {
+        cube.rotation.y += 0.01;
+        cube.rotation.x += 0.005;
+    }
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>
+ 
+
